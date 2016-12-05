@@ -1,68 +1,158 @@
-//  OpenShift sample Node application
-var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
-    ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
-    mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
-    mongoURLLabel = "";
+#!/bin/env node
 
-console.log('port: ' + port);
-console.log('ip: ' + ip);
-console.log('mongoURL: ' + mongoURL);
+var AppContainer = function() {
+    //  Scope.
+    var self = this;
+    /*  ================================================================  */
+    /*  Helper functions.                                                 */
+    /*  ================================================================  */
 
-var mainRouter = require('./routes/index'),
-    apiRouter = require('./routes/api');
+    /**
+     *  Set up server IP address and port # using env variables/defaults.
+     */
+    self.setupVariables = function() {
+        //  Set the environment variables we need.
+        self.ipaddress = process.env.OPENSHIFT_NODEJS_IP;
+        self.port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
 
-var express = require('express'),
-    mongoose = require('mongoose'),
-    bodyParser = require('body-parser'),
-    _path = require('path'),
-    morgan = require('morgan'),
-    _fs = require('fs'),
-    app = express(),
-    eps = require('ejs');
-
-app.use(morgan('combined'))
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/', mainRouter);
-app.use('/api', apiRouter);
-
-if (mongoURL == null && process.env.DATABASE_SERVICE_NAME) {
-    var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase(),
-        mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'],
-        mongoPort = process.env[mongoServiceName + '_SERVICE_PORT'],
-        mongoDatabase = process.env[mongoServiceName + '_DATABASE'],
-        mongoPassword = process.env[mongoServiceName + '_PASSWORD']
-    mongoUser = process.env[mongoServiceName + '_USER'];
-
-    if (mongoHost && mongoPort && mongoDatabase) {
-        mongoURLLabel = mongoURL = 'mongodb://';
-        if (mongoUser && mongoPassword) {
-            mongoURL += mongoUser + ':' + mongoPassword + '@';
+        if (typeof self.ipaddress === "undefined") {
+            //  Log errors on OpenShift but continue w/ 127.0.0.1 - this
+            //  allows us to run/test the app locally.
+            console.warn('No OPENSHIFT_NODEJS_IP var, using 127.0.0.1');
+            self.ipaddress = "127.0.0.1";
         }
-        // Provide UI label that excludes user id and pw
-        mongoURLLabel += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
-        mongoURL += mongoHost + ':' + mongoPort + '/' + mongoDatabase;
+    };
 
-    }
-}
+    /**
+     *  terminator === the termination handler
+     *  Terminate server on receipt of the specified signal.
+     *  @param {string} sig  Signal to terminate on.
+     */
+    self.terminator = function(sig) {
+        if (typeof sig === "string") {
+            console.log('%s: Received %s - terminating sample app ...',
+                Date(Date.now()), sig);
+            process.exit(1);
+        }
+        console.log('%s: Node server stopped.', Date(Date.now()));
+    };
 
-mongoose.connect(mongoURL, function(err) {
-    if (err) {
-        return err;
-    } else {
-        console.log('Successfully connected to ' + mongoURL);
-    }
-});
 
-app.set('views', __dirname + '/client/views');
-app.set('view engine', 'ejs');
-app.engine('html', require('ejs').renderFile);
-app.use(express.static(_path.join(__dirname, 'client')));
+    /**
+     *  Setup termination handlers (for exit and a list of signals).
+     */
+    self.setupTerminationHandlers = function() {
+        //  Process on exit and signals.
+        process.on('exit', function() {
+            self.terminator();
+        });
 
-/*app.listen(port, function() {
-    console.log('Listening on port ' + port);
-});*/
-app.listen(port, ip);
-console.log('Server running on http://%s:%s', ip, port);
+        // Removed 'SIGPIPE' from the list - bugz 852598.
+        ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGILL', 'SIGTRAP', 'SIGABRT',
+            'SIGBUS', 'SIGFPE', 'SIGUSR1', 'SIGSEGV', 'SIGUSR2', 'SIGTERM'
+        ].forEach(function(element, index, array) {
+            process.on(element, function() {
+                self.terminator(element);
+            });
+        });
+    };
 
-module.exports = app;
+    /**
+     *  Initializes the sample application.
+     */
+    self.initialize = function() {
+        self.setupVariables();
+        self.setupTerminationHandlers();
+    };
+
+
+    self.setupServer = function() {
+
+        /**
+         * Module dependencies.
+         */
+        var app = require('./app');
+        var http = require('http');
+        /**
+         * Get port from environment and store in Express.
+         */
+        var port = normalizePort(self.port);
+        /**
+         * Create HTTP server.
+         */
+        var server = http.createServer(app);
+        /**
+         * Listen on provided port, on all network interfaces.
+         */
+        server.listen(self.port, self.ipaddress, function() {
+            console.log('%s: Node server started on %s:%d ...',
+                Date(Date.now()), self.ipaddress, self.port);
+        });
+        server.on('error', onError);
+        server.on('listening', onListening);
+
+        /**
+         * Normalize a port into a number, string, or false.
+         */
+        function normalizePort(val) {
+            var port = parseInt(val, 10);
+
+            if (isNaN(port)) {
+                // named pipe
+                return val;
+            }
+
+            if (port >= 0) {
+                // port number
+                return port;
+            }
+
+            return false;
+        }
+
+        /**
+         * Event listener for HTTP server "error" event.
+         */
+
+        function onError(error) {
+            if (error.syscall !== 'listen') {
+                throw error;
+            }
+
+            var bind = typeof port === 'string' ?
+                'Pipe ' + port :
+                'Port ' + port;
+
+            // handle specific listen errors with friendly messages
+            switch (error.code) {
+                case 'EACCES':
+                    console.error(bind + ' requires elevated privileges');
+                    process.exit(1);
+                    break;
+                case 'EADDRINUSE':
+                    console.error(bind + ' is already in use');
+                    process.exit(1);
+                    break;
+                default:
+                    throw error;
+            }
+        }
+
+        /**
+         * Event listener for HTTP server "listening" event.
+         */
+
+        function onListening() {
+            var addr = server.address();
+            console.log('Server on port : ' + addr.port);
+        }
+    };
+};
+
+
+/**
+ *  main():  Main code.
+ */
+var zapp = new AppContainer();
+zapp.initialize();
+zapp.setupServer();
