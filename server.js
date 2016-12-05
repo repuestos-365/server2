@@ -68,14 +68,14 @@ var initDb = function(callback) {
 
         console.log('Connected to MongoDB at: %s', mongoURL);
     });*/
-    mongoose.connect(mongoURL, function(err, conn) {
+    mongoose.connect(mongoURL, function(err) {
         if (err) {
             return err;
         } else {
-            db = conn;
+            /*db = conn;
             dbDetails.databaseName = db.databaseName;
             dbDetails.url = mongoURLLabel;
-            dbDetails.type = 'MongoDB';
+            dbDetails.type = 'MongoDB';*/
             console.log('Successfully connected to ' + mongoURL);
         }
     });
