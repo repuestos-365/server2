@@ -59,8 +59,10 @@ app.set('view engine', 'ejs');
 app.engine('html', require('ejs').renderFile);
 app.use(express.static(_path.join(__dirname, 'client')));
 
-app.listen(port, function() {
+/*app.listen(port, function() {
     console.log('Listening on port ' + port);
-});
+});*/
+app.listen(port, ip);
+console.log('Server running on http://%s:%s', ip, port);
 
 module.exports = app;
