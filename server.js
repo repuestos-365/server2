@@ -68,7 +68,7 @@ var initDb = function(callback) {
 
         console.log('Connected to MongoDB at: %s', mongoURL);
     });*/
-    mongoose.connect(mongoURL, function(err) {
+    mongoose.connect(mongoURL, function(err, conn) {
         if (err) {
             return err;
         } else {
