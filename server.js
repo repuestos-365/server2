@@ -1,24 +1,31 @@
 //  OpenShift sample Node application
-var express = require('express'),
-    fs = require('fs'),
-    app = express(),
-    eps = require('ejs'),
-    morgan = require('morgan'),
-    mongoose = require('mongoose');
-
-Object.assign = require('object-assign')
-
-app.engine('html', require('ejs').renderFile);
-app.use(morgan('combined'))
-
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
     ip = process.env.IP || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
     mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
     mongoURLLabel = "";
-console.log('port: ' + port);
-console.log('ip: ' + ip);
-console.log('mongoURL: ' + mongoURL);
 
+var mainRouter = require('./routes/index'),
+    apiRouter = require('./routes/api');
+
+var express = require('express'),
+    bodyParser = require('body-parser'),
+    _path = require('path'),
+    _fs = require('fs'),
+    eps = require('ejs'),
+    morgan = require('morgan'),
+    mongoose = require('mongoose'),
+    app = express();
+
+Object.assign = require('object-assign')
+
+//app.engine('html', require('ejs').renderFile);
+app.use(morgan('combined'));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use('/', mainRouter);
+app.use('/api', apiRouter);
+
+// Config URL MongoDB
 if (mongoURL == null && process.env.DATABASE_SERVICE_NAME) {
     var mongoServiceName = process.env.DATABASE_SERVICE_NAME.toUpperCase(),
         mongoHost = process.env[mongoServiceName + '_SERVICE_HOST'],
@@ -41,6 +48,7 @@ if (mongoURL == null && process.env.DATABASE_SERVICE_NAME) {
 var db = null,
     dbDetails = new Object();
 
+// Connection MongoDB
 var initDb = function(callback) {
     if (mongoURL == null) return;
 
@@ -69,7 +77,13 @@ var initDb = function(callback) {
     });
 };
 
-app.get('/', function(req, res) {
+app.set('views', __dirname + '/client/views');
+app.set('view engine', 'ejs');
+app.engine('html', require('ejs').renderFile);
+app.use(express.static(_path.join(__dirname, 'client')));
+
+//------------------------------------
+/*app.get('/', function(req, res) {
     // try to initialize the db on every request if it's not already
     // initialized.
     if (!db) {
@@ -100,7 +114,7 @@ app.get('/pagecount', function(req, res) {
     } else {
         res.send('{ pageCount: -1 }');
     }
-});
+});*/
 
 // error handling
 app.use(function(err, req, res, next) {
