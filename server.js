@@ -72,6 +72,10 @@ var initDb = function(callback) {
         if (err) {
             return err;
         } else {
+            db = conn;
+            dbDetails.databaseName = db.databaseName;
+            dbDetails.url = mongoURLLabel;
+            dbDetails.type = 'MongoDB';
             console.log('Successfully connected to ' + mongoURL);
         }
     });
