@@ -60,28 +60,26 @@ var initDb = function(callback) {
             callback(err);
             return;
         }
-
         db = conn;
         dbDetails.databaseName = db.databaseName;
         dbDetails.url = mongoURLLabel;
         dbDetails.type = 'MongoDB';
-
         console.log('Connected to MongoDB at: %s', mongoURL);
     });*/
     mongoose.connect(mongoURL, function(err) {
         if (err) {
             return err;
         } else {
-            /*db = conn;
+            db = conn;
             dbDetails.databaseName = db.databaseName;
             dbDetails.url = mongoURLLabel;
-            dbDetails.type = 'MongoDB';*/
+            dbDetails.type = 'MongoDB';
             console.log('Successfully connected to ' + mongoURL);
         }
     });
 };
 
-app.set('views', __dirname + '/client');
+app.set('views', __dirname + '/client/dist');
 app.set('view engine', 'ejs');
 app.engine('html', require('ejs').renderFile);
 app.use(express.static(_path.join(__dirname, 'client')));
