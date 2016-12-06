@@ -81,7 +81,7 @@ var initDb = function(callback) {
     });
 };
 
-app.set('views', __dirname + '/client/views');
+app.set('views', __dirname + '/client');
 app.set('view engine', 'ejs');
 app.engine('html', require('ejs').renderFile);
 app.use(express.static(_path.join(__dirname, 'client')));

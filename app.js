@@ -13,7 +13,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 
-app.set('views', __dirname + '/client/views');
+app.set('views', __dirname + '/client/src');
 app.set('view engine', 'ejs');
 app.engine('html', require('ejs').renderFile);
 app.use(express.static(path.join(__dirname, './client')));
